@@ -14,20 +14,23 @@ type RoomCardProps = {
 const statusBorder: Record<RoomStatus, string> = {
   פנוי: "border-green-200 hover:border-green-300",
   "בשימוש": "border-red-200 hover:border-red-300",
-  "דרוש תיקון": "border-yellow-200 hover:border-yellow-300",
-  לניקוי: "border-gray-200 hover:border-gray-300",
-  שמור: "border-blue-200 hover:border-blue-300",
+  "דרוש תיקון": "border-purple-200 hover:border-purple-300",
+  לניקוי: "border-yellow-200 hover:border-yellow-300",
+  שמור: "border-cyan-200 hover:border-cyan-300",
 };
 
 const statusBg: Record<RoomStatus, string> = {
   פנוי: "bg-green-50",
   "בשימוש": "bg-red-50",
-  "דרוש תיקון": "bg-yellow-50",
-  לניקוי: "bg-gray-50",
-  שמור: "bg-blue-50",
+  "דרוש תיקון": "bg-purple-50",
+  לניקוי: "bg-yellow-50",
+  שמור: "bg-cyan-50",
 };
 
-export function RoomCard({ room, status, linkedFiles = [], compact = false }: RoomCardProps) {
+export function RoomCard({ room, status, linkedFiles: rawFiles = [], compact = false }: RoomCardProps) {
+  const linkedFiles = [...rawFiles].sort(
+    (a, b) => new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime()
+  );
   return (
     <div
       className={cn(

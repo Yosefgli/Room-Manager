@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getRepairs, getRooms } from "@/lib/airtable";
 import { Wrench, AlertTriangle, CheckCircle } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";

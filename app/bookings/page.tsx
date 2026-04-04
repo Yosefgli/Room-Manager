@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getBookingFiles, getGuests } from "@/lib/airtable";
 import { BookingCard } from "@/components/booking-card";
 import { BookingsSearch } from "@/components/bookings-search";

@@ -18,8 +18,10 @@ export type AirtableRecord<T> = {
 
 export type RoomFields = {
   "שם חדר": string;
+  מספר?: number;
   קיבולת?: number;
   סטטוס?: string;
+  מיקום?: string;
   "תיקי בקשות אירוח"?: string[];
 };
 
@@ -71,12 +73,17 @@ export function computeRoomStatus(
     room.fields["תיקי בקשות אירוח"].length > 0;
   if (linkedToFile) return "בשימוש";
 
-  // 3. Was previously linked (check bookingFiles for historical link)
-  // We check if any booking file references this room in its own list
+  // 3. Manual override for "שמור"
+  if (room.fields["סטטוס"] === "שמור") return "שמור";
+
+  // 4. Was previously linked (check bookingFiles for historical link)
   const wasLinked = bookingFiles.some((f) =>
     f.fields["חדרי אירוח"]?.includes(room.id)
   );
   if (wasLinked) return "לניקוי";
+
+  // 5. Manual override for "לניקוי" (set explicitly but no booking history)
+  if (room.fields["סטטוס"] === "לניקוי") return "לניקוי";
 
   return "פנוי";
 }

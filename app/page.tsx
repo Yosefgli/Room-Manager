@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getRooms, getBookingFiles, getRepairs, computeRoomStatus, computeBookingFileStatus } from "@/lib/airtable";
 import type { RoomStatus } from "@/lib/airtable";
 import { StatusBadge } from "@/components/status-badge";
@@ -28,14 +30,12 @@ export default async function DashboardPage() {
   });
 
   const assignedFiles = bookingFiles.filter(
-    (f) => computeBookingFileStatus(f) === "הוקצב חדר"
+    (f) => computeBookingFileStatus(f) === "הוקצה חדר"
   );
   const pendingFiles = bookingFiles.filter(
     (f) => computeBookingFileStatus(f) === "ממתין"
   );
-  const openRepairs = repairs.filter(
-    (r) => r.fields["סטטוס"] !== "הושלם" && r.fields["סטטוס"] !== "סגור"
-  );
+  const openRepairs = repairs.filter((r) => r.fields["סטטוס"] !== "תוקן");
 
   return (
     <div className="space-y-8">
@@ -121,7 +121,7 @@ export default async function DashboardPage() {
             id: f.id,
             label: f.fields["שם איש קשר"],
             sub: `${f.fields["חדרי אירוח"]?.length ?? 0} חדרים`,
-            status: "הוקצב חדר",
+            status: "הוקצה חדר",
           }))}
         />
       </div>
@@ -157,9 +157,9 @@ function DashboardRoomTile({ name, status }: { name: string; status: RoomStatus 
   const colorMap: Record<RoomStatus, string> = {
     פנוי: "bg-green-50 border-green-200 text-green-700",
     "בשימוש": "bg-red-50 border-red-200 text-red-700",
-    "דרוש תיקון": "bg-yellow-50 border-yellow-200 text-yellow-700",
-    לניקוי: "bg-gray-50 border-gray-200 text-gray-500",
-    שמור: "bg-blue-50 border-blue-200 text-blue-700",
+    "דרוש תיקון": "bg-purple-50 border-purple-200 text-purple-700",
+    לניקוי: "bg-yellow-50 border-yellow-200 text-yellow-700",
+    שמור: "bg-cyan-50 border-cyan-200 text-cyan-700",
   };
 
   return (
