@@ -61,15 +61,25 @@ export function DashboardQuickActions({ waitingFiles, assignedFiles, arrivedFile
         body: JSON.stringify({ "סטטוס": newStatus }),
       });
 
-      if (newStatus === "הלך") {
-        // Cascade: linked rooms → "לניקוי"
-        const roomIds = file.fields["חדרי אירוח"] ?? [];
+      const roomIds = file.fields["חדרי אירוח"] ?? [];
+      if (newStatus === "הלך" && roomIds.length > 0) {
         await Promise.all(
           roomIds.map((rid) =>
             fetch(`/api/rooms/${rid}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ "סטטוס": "לניקוי" }),
+            })
+          )
+        );
+      }
+      if (newStatus === "הגיע" && roomIds.length > 0) {
+        await Promise.all(
+          roomIds.map((rid) =>
+            fetch(`/api/rooms/${rid}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ "סטטוס": "בשימוש" }),
             })
           )
         );
@@ -90,11 +100,13 @@ export function DashboardQuickActions({ waitingFiles, assignedFiles, arrivedFile
       const existingRooms = file.fields["חדרי אירוח"] ?? [];
       const newFileStatus = file.fields["סטטוס"] === "ממתין" ? "הוקצה חדר" : file.fields["סטטוס"];
 
+      // "שמור" = reserved; "בשימוש" only if the guest already arrived
+      const newRoomStatus = file.fields["סטטוס"] === "הגיע" ? "בשימוש" : "שמור";
       await Promise.all([
         fetch(`/api/rooms/${roomItem.room.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ "סטטוס": "בשימוש" }),
+          body: JSON.stringify({ "סטטוס": newRoomStatus }),
         }),
         fetch(`/api/bookings/${file.id}`, {
           method: "PATCH",
@@ -136,7 +148,7 @@ export function DashboardQuickActions({ waitingFiles, assignedFiles, arrivedFile
                 <span className="text-sm font-semibold text-gray-700">{label}</span>
                 <StatusBadge status={status} type="booking" size="sm" />
               </div>
-              {files.slice(0, 5).map((file) => (
+              {files.map((file) => (
                 <QuickCard
                   key={file.id}
                   file={file}
@@ -146,11 +158,6 @@ export function DashboardQuickActions({ waitingFiles, assignedFiles, arrivedFile
                   onSetStatus={(s) => setBookingStatus(file, s)}
                 />
               ))}
-              {files.length > 5 && (
-                <Link href="/bookings" className="text-xs text-primary hover:underline block text-center pt-1">
-                  עוד {files.length - 5}...
-                </Link>
-              )}
             </div>
           ))}
         </div>

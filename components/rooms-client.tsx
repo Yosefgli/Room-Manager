@@ -123,6 +123,19 @@ export function RoomsClient({
         body: JSON.stringify({ "סטטוס": newStatus }),
       });
 
+      // Cascade: room → "בשימוש" → if booking was "הוקצה חדר" → booking "הגיע"
+      if (newStatus === "בשימוש") {
+        for (const bf of item.linkedFiles) {
+          if (bf.fields["סטטוס"] === "הוקצה חדר") {
+            await fetch(`/api/bookings/${bf.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ "סטטוס": "הגיע" }),
+            });
+          }
+        }
+      }
+
       // Cascade: room → "לניקוי" → check if booking file should become "הלך"
       if (newStatus === "לניקוי") {
         for (const bf of item.linkedFiles) {
@@ -189,15 +202,25 @@ export function RoomsClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ "סטטוס": newStatus }),
       });
-      // Cascade: booking → "הלך" → all rooms → "לניקוי"
-      if (newStatus === "הלך") {
-        const roomIds = bookingFile.fields["חדרי אירוח"] ?? [];
+      const roomIds = bookingFile.fields["חדרי אירוח"] ?? [];
+      if (newStatus === "הלך" && roomIds.length > 0) {
         await Promise.all(
           roomIds.map((rid) =>
             fetch(`/api/rooms/${rid}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ "סטטוס": "לניקוי" }),
+            })
+          )
+        );
+      }
+      if (newStatus === "הגיע" && roomIds.length > 0) {
+        await Promise.all(
+          roomIds.map((rid) =>
+            fetch(`/api/rooms/${rid}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ "סטטוס": "בשימוש" }),
             })
           )
         );
@@ -217,11 +240,13 @@ export function RoomsClient({
     try {
       const existingRooms = bookingFile.fields["חדרי אירוח"] ?? [];
       const newFileStatus = bookingFile.fields["סטטוס"] === "ממתין" ? "הוקצה חדר" : bookingFile.fields["סטטוס"];
+      // Room status: "שמור" unless guest already arrived
+      const newRoomStatus = bookingFile.fields["סטטוס"] === "הגיע" ? "בשימוש" : "שמור";
       await Promise.all([
         fetch(`/api/rooms/${item.room.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ "סטטוס": "בשימוש" }),
+          body: JSON.stringify({ "סטטוס": newRoomStatus }),
         }),
         fetch(`/api/bookings/${bookingFile.id}`, {
           method: "PATCH",

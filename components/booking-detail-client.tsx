@@ -151,19 +151,22 @@ export function BookingDetailClient({
       if (!res.ok) throw new Error();
 
       // Update status of each affected room
+      // Added rooms: "שמור" (reserved) unless guest already arrived → "בשימוש"
+      const newRoomStatus = fileStatus === "הגיע" ? "בשימוש" : "שמור";
       await Promise.all([
         ...added.map((id) =>
           fetch(`/api/rooms/${id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ "סטטוס": "בשימוש" }),
+            body: JSON.stringify({ "סטטוס": newRoomStatus }),
           })
         ),
+        // Removed rooms always go back to פנוי (correcting a mistake)
         ...removed.map((id) =>
           fetch(`/api/rooms/${id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ "סטטוס": "לניקוי" }),
+            body: JSON.stringify({ "סטטוס": "פנוי" }),
           })
         ),
       ]);
@@ -280,19 +283,27 @@ export function BookingDetailClient({
         body: JSON.stringify({ "סטטוס": newStatus }),
       });
       if (!res.ok) throw new Error();
-      // Cascade: "הלך" → all linked rooms → "לניקוי"
-      if (newStatus === "הלך") {
-        const roomIds = file.fields["חדרי אירוח"] ?? [];
-        await Promise.all(
-          roomIds.map((rid) =>
-            fetch(`/api/rooms/${rid}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ "סטטוס": "לניקוי" }),
-            })
-          )
-        );
+
+      // Cascade room statuses based on new booking status
+      const roomIds = file.fields["חדרי אירוח"] ?? [];
+      if (roomIds.length > 0) {
+        const roomStatus =
+          newStatus === "הגיע" ? "בשימוש" :
+          newStatus === "הוקצה חדר" ? "שמור" :
+          newStatus === "הלך" ? "לניקוי" : null;
+        if (roomStatus) {
+          await Promise.all(
+            roomIds.map((rid) =>
+              fetch(`/api/rooms/${rid}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ "סטטוס": roomStatus }),
+              })
+            )
+          );
+        }
       }
+
       toast.success("סטטוס עודכן");
       setEditingStatus(false);
       startTransition(() => router.refresh());
@@ -300,6 +311,31 @@ export function BookingDetailClient({
       toast.error("שגיאה בעדכון סטטוס");
     } finally {
       setSavingStatus(false);
+    }
+  }
+
+  async function removeRoomFromBooking(roomId: string) {
+    const newRoomIds = Array.from(selectedRooms).filter((id) => id !== roomId);
+    setSelectedRooms(new Set(newRoomIds));
+    try {
+      const newStatus = newRoomIds.length > 0 ? "הוקצה חדר" : "ממתין";
+      await Promise.all([
+        fetch(`/api/bookings/${file.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ "חדרי אירוח": newRoomIds, "סטטוס": newStatus }),
+        }),
+        fetch(`/api/rooms/${roomId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ "סטטוס": "פנוי" }),
+        }),
+      ]);
+      toast.success("חדר הוסר");
+      startTransition(() => router.refresh());
+    } catch {
+      setSelectedRooms(new Set(initialAssigned));
+      toast.error("שגיאה בהסרת חדר");
     }
   }
 
@@ -467,6 +503,28 @@ export function BookingDetailClient({
             </Button>
           )}
         </div>
+
+        {/* Assigned rooms chips with remove button */}
+        {selectedRooms.size > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {Array.from(selectedRooms).map((roomId) => {
+              const roomItem = roomsWithStatus.find((r) => r.room.id === roomId);
+              if (!roomItem) return null;
+              return (
+                <div key={roomId} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-primary/5 border border-primary/20 rounded-xl text-sm">
+                  <span className="font-medium text-primary text-xs">{roomItem.room.fields["שם חדר"]}</span>
+                  <button
+                    onClick={() => removeRoomFromBooking(roomId)}
+                    className="p-0.5 rounded-md hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
+                    title="הסר חדר"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Legend */}
         <div className="flex flex-wrap gap-3 mb-4 text-xs text-gray-500">
