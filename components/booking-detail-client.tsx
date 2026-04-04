@@ -260,6 +260,48 @@ export function BookingDetailClient({
   }
 
   const fileStatus = computeBookingFileStatus(file);
+  const [editingStatus, setEditingStatus] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
+
+  const BOOKING_STATUSES = ["ממתין", "הוקצה חדר", "הגיע", "הלך"];
+  const statusBtnCls: Record<string, string> = {
+    ממתין: "bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100",
+    "הוקצה חדר": "bg-cyan-50 border-cyan-200 text-cyan-700 hover:bg-cyan-100",
+    הגיע: "bg-red-50 border-red-200 text-red-700 hover:bg-red-100",
+    הלך: "bg-green-50 border-green-200 text-green-700 hover:bg-green-100",
+  };
+
+  async function changeFileStatus(newStatus: string) {
+    setSavingStatus(true);
+    try {
+      const res = await fetch(`/api/bookings/${file.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ "סטטוס": newStatus }),
+      });
+      if (!res.ok) throw new Error();
+      // Cascade: "הלך" → all linked rooms → "לניקוי"
+      if (newStatus === "הלך") {
+        const roomIds = file.fields["חדרי אירוח"] ?? [];
+        await Promise.all(
+          roomIds.map((rid) =>
+            fetch(`/api/rooms/${rid}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ "סטטוס": "לניקוי" }),
+            })
+          )
+        );
+      }
+      toast.success("סטטוס עודכן");
+      setEditingStatus(false);
+      startTransition(() => router.refresh());
+    } catch {
+      toast.error("שגיאה בעדכון סטטוס");
+    } finally {
+      setSavingStatus(false);
+    }
+  }
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -271,7 +313,9 @@ export function BookingDetailClient({
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold text-gray-900">{contactForm.name}</h1>
-            <StatusBadge status={fileStatus} type="booking" />
+            <button onClick={() => setEditingStatus((v) => !v)} className="focus:outline-none">
+              <StatusBadge status={fileStatus} type="booking" />
+            </button>
           </div>
           {file.fields["מספר פלאפון"] && (
             <a
@@ -281,6 +325,26 @@ export function BookingDetailClient({
               <Phone className="w-3.5 h-3.5" />
               {file.fields["מספר פלאפון"]}
             </a>
+          )}
+          {editingStatus && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {BOOKING_STATUSES.filter((s) => s !== fileStatus).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => changeFileStatus(s)}
+                  disabled={savingStatus}
+                  className={cn(
+                    "px-3 py-1 rounded-full border text-xs font-medium transition-all",
+                    statusBtnCls[s] ?? "bg-gray-50 border-gray-200 text-gray-700"
+                  )}
+                >
+                  {savingStatus ? <Loader2 className="w-3 h-3 animate-spin inline" /> : s}
+                </button>
+              ))}
+              <button onClick={() => setEditingStatus(false)} className="px-2 py-1 rounded-full text-xs text-gray-400 hover:bg-gray-100">
+                ✕
+              </button>
+            </div>
           )}
         </div>
       </div>

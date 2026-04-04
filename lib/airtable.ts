@@ -28,6 +28,7 @@ export type RoomFields = {
 export type BookingFileFields = {
   "שם איש קשר": string;
   "מספר פלאפון"?: string;
+  "מספר הזמנה"?: number;
   "בקשות אירוח"?: string[];
   "חדרי אירוח"?: string[];
   סטטוס?: string;
@@ -61,45 +62,37 @@ export function computeRoomStatus(
   repairs: Repair[],
   bookingFiles: BookingFile[]
 ): RoomStatus {
-  // 1. Open repair always wins
-  const hasOpenRepair = repairs.some(
-    (r) =>
-      r.fields["חדרי אירוח"]?.includes(room.id) &&
-      r.fields["סטטוס"] !== "תוקן"
-  );
-  if (hasOpenRepair) return "דרוש תיקון";
-
-  // 2. Trust the stored Airtable status field if valid
   const stored = room.fields["סטטוס"];
-  if (stored && VALID_ROOM_STATUSES.includes(stored as RoomStatus)) {
+
+  // Trust stored status unless it is "דרוש תיקון" (which depends on live repair records)
+  if (stored && stored !== "דרוש תיקון" && VALID_ROOM_STATUSES.includes(stored as RoomStatus)) {
     return stored as RoomStatus;
   }
 
-  // 3. Fallback: compute from relationships
-  const linkedToFile =
-    room.fields["תיקי בקשות אירוח"] &&
-    room.fields["תיקי בקשות אירוח"].length > 0;
-  if (linkedToFile) return "בשימוש";
-
-  const wasLinked = bookingFiles.some((f) =>
-    f.fields["חדרי אירוח"]?.includes(room.id)
+  // For "דרוש תיקון" or no stored status: check open repairs
+  const hasOpenRepair = repairs.some(
+    (r) => r.fields["חדרי אירוח"]?.includes(room.id) && r.fields["סטטוס"] !== "תוקן"
   );
-  if (wasLinked) return "לניקוי";
+  if (hasOpenRepair) return "דרוש תיקון";
 
+  // Repairs all fixed — compute from relationships
+  if (room.fields["תיקי בקשות אירוח"]?.length) return "בשימוש";
+  if (bookingFiles.some((f) => f.fields["חדרי אירוח"]?.includes(room.id))) return "לניקוי";
   return "פנוי";
+}
+
+export function hasOpenRepairForRoom(room: Room, repairs: Repair[]): boolean {
+  return repairs.some(
+    (r) => r.fields["חדרי אירוח"]?.includes(room.id) && r.fields["סטטוס"] !== "תוקן"
+  );
 }
 
 const VALID_BOOKING_STATUSES = ["ממתין", "הוקצה חדר", "הגיע", "הלך"];
 
 export function computeBookingFileStatus(file: BookingFile): string {
-  // Trust the stored Airtable status field if valid
   const stored = file.fields["סטטוס"];
   if (stored && VALID_BOOKING_STATUSES.includes(stored)) return stored;
-
-  // Fallback: compute from relationships
-  if (file.fields["חדרי אירוח"] && file.fields["חדרי אירוח"].length > 0) {
-    return "הוקצה חדר";
-  }
+  if (file.fields["חדרי אירוח"]?.length) return "הוקצה חדר";
   return "ממתין";
 }
 
@@ -237,5 +230,36 @@ export async function updateRoom(
     }
   );
   if (!res.ok) throw new Error("Failed to update room");
+  return res.json();
+}
+
+export async function createRepair(
+  fields: Partial<RepairFields>
+): Promise<Repair> {
+  const res = await fetch(
+    `${BASE_URL}/${encodeURIComponent("דרוש תיקון")}`,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ fields }),
+    }
+  );
+  if (!res.ok) throw new Error("Failed to create repair");
+  return res.json();
+}
+
+export async function updateRepair(
+  id: string,
+  fields: Partial<RepairFields>
+): Promise<Repair> {
+  const res = await fetch(
+    `${BASE_URL}/${encodeURIComponent("דרוש תיקון")}/${id}`,
+    {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ fields }),
+    }
+  );
+  if (!res.ok) throw new Error("Failed to update repair");
   return res.json();
 }
