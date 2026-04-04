@@ -1,8 +1,6 @@
 // Airtable REST API client
 // All data fetching happens server-side to keep API keys safe
 
-import { trackApiCall } from "./usage";
-
 const BASE_URL = `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}`;
 
 const headers = {
@@ -130,7 +128,6 @@ async function fetchAll<T>(table: string): Promise<AirtableRecord<T>[]> {
     const data = await res.json();
     records.push(...data.records);
     offset = data.offset;
-    trackApiCall(1);
   } while (offset);
 
   return records;

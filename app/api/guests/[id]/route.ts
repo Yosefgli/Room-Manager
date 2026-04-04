@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateGuest, deleteGuest } from "@/lib/airtable";
+import { trackApiCall } from "@/lib/usage";
 
 export async function PATCH(
   request: NextRequest,
@@ -9,6 +10,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
     const record = await updateGuest(id, body);
+    trackApiCall(1);
     return NextResponse.json(record);
   } catch (err) {
     console.error(err);
@@ -23,6 +25,7 @@ export async function DELETE(
   try {
     const { id } = await params;
     await deleteGuest(id);
+    trackApiCall(1);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error(err);
