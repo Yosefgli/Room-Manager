@@ -46,17 +46,17 @@ type Props = {
 const statusColor: Record<RoomStatus, string> = {
   פנוי: "bg-green-50 border-green-200 hover:border-green-400 text-green-800",
   "בשימוש": "bg-red-50 border-red-200 hover:border-red-400 text-red-800",
-  "דרוש תיקון": "bg-yellow-50 border-yellow-200 hover:border-yellow-400 text-yellow-800",
-  לניקוי: "bg-gray-50 border-gray-200 hover:border-gray-400 text-gray-600",
-  שמור: "bg-blue-50 border-blue-200 hover:border-blue-400 text-blue-800",
+  "דרוש תיקון": "bg-purple-50 border-purple-200 hover:border-purple-400 text-purple-800",
+  לניקוי: "bg-yellow-50 border-yellow-200 hover:border-yellow-400 text-yellow-800",
+  שמור: "bg-cyan-50 border-cyan-200 hover:border-cyan-400 text-cyan-800",
 };
 
 const selectedRing: Record<RoomStatus, string> = {
   פנוי: "ring-2 ring-green-400 border-green-400",
   "בשימוש": "ring-2 ring-red-400 border-red-400",
-  "דרוש תיקון": "ring-2 ring-yellow-400 border-yellow-400",
-  לניקוי: "ring-2 ring-gray-400 border-gray-400",
-  שמור: "ring-2 ring-blue-400 border-blue-400",
+  "דרוש תיקון": "ring-2 ring-purple-400 border-purple-400",
+  לניקוי: "ring-2 ring-yellow-400 border-yellow-400",
+  שמור: "ring-2 ring-cyan-400 border-cyan-400",
 };
 
 export function BookingDetailClient({
@@ -131,14 +131,43 @@ export function BookingDetailClient({
   async function saveRooms() {
     setSavingRooms(true);
     try {
+      const newRoomIds = Array.from(selectedRooms);
+      const prevRoomIds = new Set(initialAssigned);
+
+      // Compute which rooms were added or removed
+      const added = newRoomIds.filter((id) => !prevRoomIds.has(id));
+      const removed = initialAssigned.filter((id) => !selectedRooms.has(id));
+
+      // Update the booking file: linked rooms + computed status
+      const newStatus = newRoomIds.length > 0 ? "הוקצה חדר" : "ממתין";
       const res = await fetch(`/api/bookings/${file.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          "חדרי אירוח": Array.from(selectedRooms),
+          "חדרי אירוח": newRoomIds,
+          "סטטוס": newStatus,
         }),
       });
       if (!res.ok) throw new Error();
+
+      // Update status of each affected room
+      await Promise.all([
+        ...added.map((id) =>
+          fetch(`/api/rooms/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ "סטטוס": "בשימוש" }),
+          })
+        ),
+        ...removed.map((id) =>
+          fetch(`/api/rooms/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ "סטטוס": "לניקוי" }),
+          })
+        ),
+      ]);
+
       toast.success("חדרים עודכנו");
       setRoomsChanged(false);
       startTransition(() => router.refresh());
@@ -379,8 +408,9 @@ export function BookingDetailClient({
         <div className="flex flex-wrap gap-3 mb-4 text-xs text-gray-500">
           <LegendItem color="bg-green-400" label="פנוי" />
           <LegendItem color="bg-red-400" label="בשימוש" />
-          <LegendItem color="bg-yellow-400" label="דרוש תיקון" />
-          <LegendItem color="bg-gray-400" label="לניקוי / שמור" />
+          <LegendItem color="bg-purple-400" label="דרוש תיקון" />
+          <LegendItem color="bg-yellow-400" label="לניקוי" />
+          <LegendItem color="bg-cyan-400" label="שמור" />
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">

@@ -61,8 +61,7 @@ export function computeRoomStatus(
   const hasOpenRepair = repairs.some(
     (r) =>
       r.fields["חדרי אירוח"]?.includes(room.id) &&
-      r.fields["סטטוס"] !== "הושלם" &&
-      r.fields["סטטוס"] !== "סגור"
+      r.fields["סטטוס"] !== "תוקן"
   );
   if (hasOpenRepair) return "דרוש תיקון";
 
@@ -84,7 +83,7 @@ export function computeRoomStatus(
 
 export function computeBookingFileStatus(file: BookingFile): string {
   if (file.fields["חדרי אירוח"] && file.fields["חדרי אירוח"].length > 0) {
-    return "הוקצב חדר";
+    return "הוקצה חדר";
   }
   return "ממתין";
 }
@@ -208,4 +207,20 @@ export async function deleteGuest(id: string): Promise<void> {
     { method: "DELETE", headers }
   );
   if (!res.ok) throw new Error("Failed to delete guest");
+}
+
+export async function updateRoom(
+  id: string,
+  fields: Partial<RoomFields>
+): Promise<Room> {
+  const res = await fetch(
+    `${BASE_URL}/${encodeURIComponent("חדרי אירוח")}/${id}`,
+    {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ fields }),
+    }
+  );
+  if (!res.ok) throw new Error("Failed to update room");
+  return res.json();
 }

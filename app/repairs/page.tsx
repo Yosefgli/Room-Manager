@@ -10,12 +10,8 @@ export default async function RepairsPage() {
     roomMap[r.id] = r.fields["שם חדר"] || r.id;
   });
 
-  const openRepairs = repairs.filter(
-    (r) => r.fields["סטטוס"] !== "הושלם" && r.fields["סטטוס"] !== "סגור"
-  );
-  const closedRepairs = repairs.filter(
-    (r) => r.fields["סטטוס"] === "הושלם" || r.fields["סטטוס"] === "סגור"
-  );
+  const openRepairs = repairs.filter((r) => r.fields["סטטוס"] !== "תוקן");
+  const closedRepairs = repairs.filter((r) => r.fields["סטטוס"] === "תוקן");
 
   return (
     <div className="space-y-8">
@@ -90,7 +86,7 @@ function RepairRow({
             </span>
           ))}
           {repair.fields["סטטוס"] && (
-            <StatusBadge status={repair.fields["סטטוס"]} size="sm" />
+            <StatusBadge status={repair.fields["סטטוס"]} type="repair" size="sm" />
           )}
         </div>
         <p className="text-sm text-gray-600 mt-1">{repair.fields["תיקון שנדרש"]}</p>

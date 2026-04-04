@@ -20,37 +20,60 @@ const roomStatusConfig: Record<RoomStatus, StatusConfig> = {
   },
   "דרוש תיקון": {
     label: "דרוש תיקון",
-    className: "bg-yellow-50 text-yellow-700 border-yellow-200",
-    dot: "bg-yellow-500",
+    className: "bg-purple-50 text-purple-700 border-purple-200",
+    dot: "bg-purple-500",
   },
   לניקוי: {
     label: "לניקוי",
-    className: "bg-gray-50 text-gray-600 border-gray-200",
-    dot: "bg-gray-400",
+    className: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    dot: "bg-yellow-500",
   },
   שמור: {
     label: "שמור",
-    className: "bg-blue-50 text-blue-700 border-blue-200",
-    dot: "bg-blue-400",
+    className: "bg-cyan-50 text-cyan-700 border-cyan-200",
+    dot: "bg-cyan-500",
   },
 };
 
 const bookingStatusConfig: Record<string, StatusConfig> = {
-  "הוקצב חדר": {
-    label: "הוקצב חדר",
-    className: "bg-blue-50 text-blue-700 border-blue-200",
-    dot: "bg-blue-500",
+  "הוקצה חדר": {
+    label: "הוקצה חדר",
+    className: "bg-cyan-50 text-cyan-700 border-cyan-200",
+    dot: "bg-cyan-500",
   },
   ממתין: {
     label: "ממתין",
-    className: "bg-orange-50 text-orange-700 border-orange-200",
-    dot: "bg-orange-400",
+    className: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    dot: "bg-yellow-500",
+  },
+  הגיע: {
+    label: "הגיע",
+    className: "bg-red-50 text-red-700 border-red-200",
+    dot: "bg-red-500",
+  },
+  הלך: {
+    label: "הלך",
+    className: "bg-green-50 text-green-700 border-green-200",
+    dot: "bg-green-500",
+  },
+};
+
+const repairStatusConfig: Record<string, StatusConfig> = {
+  "דרוש תיקון": {
+    label: "דרוש תיקון",
+    className: "bg-red-50 text-red-700 border-red-200",
+    dot: "bg-red-500",
+  },
+  תוקן: {
+    label: "תוקן",
+    className: "bg-green-50 text-green-700 border-green-200",
+    dot: "bg-green-500",
   },
 };
 
 type StatusBadgeProps = {
   status: string;
-  type?: "room" | "booking";
+  type?: "room" | "booking" | "repair";
   size?: "sm" | "md";
 };
 
@@ -58,7 +81,9 @@ export function StatusBadge({ status, type = "room", size = "md" }: StatusBadgeP
   const config =
     type === "room"
       ? (roomStatusConfig as Record<string, StatusConfig>)[status]
-      : bookingStatusConfig[status];
+      : type === "repair"
+        ? repairStatusConfig[status]
+        : bookingStatusConfig[status];
 
   if (!config) {
     return (

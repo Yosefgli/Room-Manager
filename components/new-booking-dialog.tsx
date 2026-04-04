@@ -35,6 +35,7 @@ export function NewBookingDialog() {
           "שם איש קשר": form.name.trim(),
           "מספר פלאפון": form.phone.trim() || undefined,
           הערות: form.notes.trim() || undefined,
+          "סטטוס": "ממתין",
         }),
       });
       if (!res.ok) throw new Error("Failed");
