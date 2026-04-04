@@ -1,31 +1,40 @@
-// Tracks Airtable API call counts, stored in data/airtable-usage.json
-// Each entry: { date: "YYYY-MM-DD", count: number }
-// Settings: { cycleStartDay: number (1-28) }
+// Tracks Airtable API call counts.
+// On Vercel (read-only FS): stores in /tmp — persists within the same function instance only.
+// Locally: stores in data/airtable-usage.json — persists across restarts.
 
 import fs from "fs";
 import path from "path";
 
-const DATA_FILE = path.join(process.cwd(), "data", "airtable-usage.json");
+// /tmp is writable on Vercel; use local data/ dir otherwise
+const DATA_FILE = process.env.VERCEL
+  ? "/tmp/airtable-usage.json"
+  : path.join(process.cwd(), "data", "airtable-usage.json");
+
+// Settings stored separately so they survive /tmp resets on Vercel via env var fallback
+const SETTINGS_FILE = process.env.VERCEL
+  ? "/tmp/airtable-usage-settings.json"
+  : path.join(process.cwd(), "data", "airtable-usage-settings.json");
 
 type DayEntry = { date: string; count: number };
-type UsageData = {
-  settings: { cycleStartDay: number };
-  days: DayEntry[];
-};
+type UsageData = { days: DayEntry[] };
+type Settings = { cycleStartDay: number };
 
-function readData(): UsageData {
+function readJson<T>(filePath: string, fallback: T): T {
   try {
-    const raw = fs.readFileSync(DATA_FILE, "utf-8");
-    return JSON.parse(raw);
+    return JSON.parse(fs.readFileSync(filePath, "utf-8")) as T;
   } catch {
-    return { settings: { cycleStartDay: 1 }, days: [] };
+    return fallback;
   }
 }
 
-function writeData(data: UsageData) {
-  const dir = path.dirname(DATA_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
+function writeJson(filePath: string, data: unknown) {
+  try {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
+  } catch {
+    // Silently ignore write errors (e.g. read-only FS)
+  }
 }
 
 function todayStr(): string {
@@ -33,60 +42,58 @@ function todayStr(): string {
 }
 
 export function trackApiCall(count = 1) {
-  const today = todayStr();
-  const data = readData();
-  const existing = data.days.find((d) => d.date === today);
-  if (existing) {
-    existing.count += count;
-  } else {
-    data.days.push({ date: today, count });
+  try {
+    const today = todayStr();
+    const data = readJson<UsageData>(DATA_FILE, { days: [] });
+    const existing = data.days.find((d) => d.date === today);
+    if (existing) {
+      existing.count += count;
+    } else {
+      data.days.push({ date: today, count });
+    }
+    writeJson(DATA_FILE, data);
+  } catch {
+    // Never crash a page because of tracking
   }
-  writeData(data);
 }
 
-export function getUsageData(): UsageData {
-  return readData();
+export function getSettings(): Settings {
+  // Allow overriding cycleStartDay via env var for Vercel persistence
+  const envDay = process.env.USAGE_CYCLE_START_DAY ? parseInt(process.env.USAGE_CYCLE_START_DAY, 10) : null;
+  const stored = readJson<Settings>(SETTINGS_FILE, { cycleStartDay: envDay ?? 1 });
+  return stored;
 }
 
 export function setCycleStartDay(day: number) {
-  const data = readData();
-  data.settings.cycleStartDay = Math.max(1, Math.min(28, day));
-  writeData(data);
+  writeJson(SETTINGS_FILE, { cycleStartDay: Math.max(1, Math.min(28, day)) });
 }
 
-// Returns usage grouped by billing cycle
 export type CycleSummary = {
-  label: string;       // e.g. "מרץ 2025"
-  start: string;       // YYYY-MM-DD
-  end: string;         // YYYY-MM-DD
+  label: string;
+  start: string;
+  end: string;
   total: number;
   days: DayEntry[];
 };
 
-export function getCycleSummaries(): { summaries: CycleSummary[]; settings: { cycleStartDay: number } } {
-  const data = readData();
-  const { cycleStartDay } = data.settings;
+export function getCycleSummaries(): { summaries: CycleSummary[]; settings: Settings } {
+  const settings = getSettings();
+  const data = readJson<UsageData>(DATA_FILE, { days: [] });
   const { days } = data;
 
   if (days.length === 0) {
-    return { summaries: [], settings: data.settings };
+    return { summaries: [], settings };
   }
 
-  // Find range
   const allDates = days.map((d) => d.date).sort();
   const firstDate = new Date(allDates[0]);
   const lastDate = new Date();
 
-  // Build cycles from firstDate to now
   const summaries: CycleSummary[] = [];
-
-  let cycleStart = new Date(firstDate.getFullYear(), firstDate.getMonth(), cycleStartDay);
-  // If cycleStart is after firstDate, go back one month
-  if (cycleStart > firstDate) {
-    cycleStart.setMonth(cycleStart.getMonth() - 1);
-  }
-
   const HEBREW_MONTHS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+
+  let cycleStart = new Date(firstDate.getFullYear(), firstDate.getMonth(), settings.cycleStartDay);
+  if (cycleStart > firstDate) cycleStart.setMonth(cycleStart.getMonth() - 1);
 
   while (cycleStart <= lastDate) {
     const cycleEnd = new Date(cycleStart);
@@ -95,15 +102,13 @@ export function getCycleSummaries(): { summaries: CycleSummary[]; settings: { cy
 
     const startStr = cycleStart.toISOString().slice(0, 10);
     const endStr = cycleEnd.toISOString().slice(0, 10);
-
     const cycleDays = days.filter((d) => d.date >= startStr && d.date <= endStr);
-    const total = cycleDays.reduce((s, d) => s + d.count, 0);
 
     summaries.push({
       label: `${HEBREW_MONTHS[cycleStart.getMonth()]} ${cycleStart.getFullYear()}`,
       start: startStr,
       end: endStr,
-      total,
+      total: cycleDays.reduce((s, d) => s + d.count, 0),
       days: cycleDays,
     });
 
@@ -112,5 +117,5 @@ export function getCycleSummaries(): { summaries: CycleSummary[]; settings: { cy
   }
 
   summaries.reverse();
-  return { summaries, settings: data.settings };
+  return { summaries, settings };
 }
