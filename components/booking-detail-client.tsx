@@ -187,7 +187,7 @@ export function BookingDetailClient({
   const [guestForm, setGuestForm] = useState({ name: "", phone: "" });
   const [savingGuest, setSavingGuest] = useState(false);
   const [editingGuest, setEditingGuest] = useState<string | null>(null);
-  const [editGuestForm, setEditGuestForm] = useState({ name: "", phone: "" });
+  const [editGuestForm, setEditGuestForm] = useState({ name: "", phone: "", idNumber: "" });
 
   async function addGuest(e: React.FormEvent) {
     e.preventDefault();
@@ -250,6 +250,7 @@ export function BookingDetailClient({
         body: JSON.stringify({
           "שם אורח": editGuestForm.name,
           "מספר פלאפון": editGuestForm.phone || undefined,
+          "תעודת זהות": editGuestForm.idNumber || undefined,
         }),
       });
       if (!res.ok) throw new Error();
@@ -678,22 +679,32 @@ export function BookingDetailClient({
                 </div>
 
                 {editingGuest === guest.id ? (
-                  <div className="flex-1 flex gap-2 items-center">
+                  <div className="flex-1 flex flex-wrap gap-2 items-center">
                     <Input
                       value={editGuestForm.name}
                       onChange={(e) =>
                         setEditGuestForm((f) => ({ ...f, name: e.target.value }))
                       }
-                      className="h-7 text-sm rounded-lg flex-1"
+                      className="h-7 text-sm rounded-lg flex-1 min-w-24"
+                      placeholder="שם"
                     />
                     <Input
                       value={editGuestForm.phone}
                       onChange={(e) =>
                         setEditGuestForm((f) => ({ ...f, phone: e.target.value }))
                       }
-                      className="h-7 text-sm rounded-lg w-32"
+                      className="h-7 text-sm rounded-lg w-28"
                       dir="ltr"
                       placeholder="טלפון"
+                    />
+                    <Input
+                      value={editGuestForm.idNumber}
+                      onChange={(e) =>
+                        setEditGuestForm((f) => ({ ...f, idNumber: e.target.value }))
+                      }
+                      className="h-7 text-sm rounded-lg w-28"
+                      dir="ltr"
+                      placeholder="ת.ז."
                     />
                     <button
                       onClick={() => saveGuestEdit(guest.id)}
@@ -714,9 +725,14 @@ export function BookingDetailClient({
                       <p className="text-sm font-medium text-gray-800 truncate">
                         {guest.fields["שם אורח"]}
                       </p>
-                      {guest.fields["מספר פלאפון"] && (
-                        <p className="text-xs text-gray-400">{guest.fields["מספר פלאפון"]}</p>
-                      )}
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {guest.fields["מספר פלאפון"] && (
+                          <p className="text-xs text-gray-400">{guest.fields["מספר פלאפון"]}</p>
+                        )}
+                        {guest.fields["תעודת זהות"] && (
+                          <p className="text-xs text-gray-400">ת.ז. {guest.fields["תעודת זהות"]}</p>
+                        )}
+                      </div>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
@@ -725,6 +741,7 @@ export function BookingDetailClient({
                           setEditGuestForm({
                             name: guest.fields["שם אורח"] || "",
                             phone: guest.fields["מספר פלאפון"] || "",
+                            idNumber: guest.fields["תעודת זהות"] || "",
                           });
                         }}
                         className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/5"

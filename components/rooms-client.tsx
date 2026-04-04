@@ -123,7 +123,7 @@ export function RoomsClient({
         body: JSON.stringify({ "סטטוס": newStatus }),
       });
 
-      // Cascade: room → "בשימוש" → if booking was "הוקצה חדר" → booking "הגיע"
+      // Cascade: room → "בשימוש" → if booking was "הוקצה חדר" → "הגיע"
       if (newStatus === "בשימוש") {
         for (const bf of item.linkedFiles) {
           if (bf.fields["סטטוס"] === "הוקצה חדר") {
@@ -131,6 +131,19 @@ export function RoomsClient({
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ "סטטוס": "הגיע" }),
+            });
+          }
+        }
+      }
+
+      // Cascade: room → "שמור" → if booking was "הגיע" → "הוקצה חדר"
+      if (newStatus === "שמור") {
+        for (const bf of item.linkedFiles) {
+          if (bf.fields["סטטוס"] === "הגיע") {
+            await fetch(`/api/bookings/${bf.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ "סטטוס": "הוקצה חדר" }),
             });
           }
         }
@@ -230,6 +243,33 @@ export function RoomsClient({
       startTransition(() => router.refresh());
     } catch {
       toast.error("שגיאה בעדכון");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function unlinkRoomFromBooking(item: RoomWithData, bookingFile: BookingFile) {
+    setSaving(true);
+    try {
+      const newRoomIds = (bookingFile.fields["חדרי אירוח"] ?? []).filter((id) => id !== item.room.id);
+      const newStatus = newRoomIds.length > 0 ? "הוקצה חדר" : "ממתין";
+      await Promise.all([
+        fetch(`/api/rooms/${item.room.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ "סטטוס": "פנוי" }),
+        }),
+        fetch(`/api/bookings/${bookingFile.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ "חדרי אירוח": newRoomIds, "סטטוס": newStatus }),
+        }),
+      ]);
+      toast.success("חיבור הוסר");
+      closeSheet();
+      startTransition(() => router.refresh());
+    } catch {
+      toast.error("שגיאה בהסרת חיבור");
     } finally {
       setSaving(false);
     }
@@ -438,6 +478,13 @@ export function RoomsClient({
                                 </button>
                               ))}
                           </div>
+                          <button
+                            onClick={() => unlinkRoomFromBooking(currentItem, bf)}
+                            disabled={saving}
+                            className="w-full mt-1 px-2.5 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-600 text-xs font-medium hover:bg-red-100 transition-all disabled:opacity-50"
+                          >
+                            הסר חדר מהתיק
+                          </button>
                         </div>
                       ))}
                     </div>

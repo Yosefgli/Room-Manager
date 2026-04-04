@@ -38,6 +38,7 @@ export type BookingFileFields = {
 export type GuestFields = {
   "שם אורח": string;
   "מספר פלאפון"?: string;
+  "תעודת זהות"?: string;
 };
 
 export type RepairFields = {

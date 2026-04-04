@@ -1,19 +1,26 @@
 export const dynamic = "force-dynamic";
 
-import { getBookingFiles } from "@/lib/airtable";
-import { BookingCard } from "@/components/booking-card";
+import { getBookingFiles, getGuests } from "@/lib/airtable";
+import { BookingsSearch } from "@/components/bookings-search";
 import { History } from "lucide-react";
+import type { Guest } from "@/lib/airtable";
 
 export default async function HistoryPage() {
-  const bookingFiles = await getBookingFiles();
+  const [bookingFiles, allGuests] = await Promise.all([getBookingFiles(), getGuests()]);
 
   const goneFiles = bookingFiles
     .filter((f) => f.fields["סטטוס"] === "הלך")
     .sort((a, b) => new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime());
 
+  const guestsById: Record<string, Guest> = {};
+  allGuests.forEach((g) => { guestsById[g.id] = g; });
+
   const guestCountMap: Record<string, number> = {};
+  const guestsMap: Record<string, Guest[]> = {};
   goneFiles.forEach((file) => {
-    guestCountMap[file.id] = file.fields["בקשות אירוח"]?.length ?? 0;
+    const ids = file.fields["בקשות אירוח"] ?? [];
+    guestCountMap[file.id] = ids.length;
+    guestsMap[file.id] = ids.map((id) => guestsById[id]).filter(Boolean);
   });
 
   return (
@@ -34,11 +41,11 @@ export default async function HistoryPage() {
           <p>אין תיקים בהיסטוריה עדיין</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {goneFiles.map((file) => (
-            <BookingCard key={file.id} file={file} guestCount={guestCountMap[file.id] ?? 0} />
-          ))}
-        </div>
+        <BookingsSearch
+          files={goneFiles}
+          guestCounts={guestCountMap}
+          guestsMap={guestsMap}
+        />
       )}
     </div>
   );

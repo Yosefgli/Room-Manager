@@ -4,14 +4,15 @@ import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { BookingCard } from "@/components/booking-card";
 import { Search } from "lucide-react";
-import type { BookingFile } from "@/lib/airtable";
+import type { BookingFile, Guest } from "@/lib/airtable";
 
 type Props = {
   files: BookingFile[];
   guestCounts: Record<string, number>;
+  guestsMap?: Record<string, Guest[]>;
 };
 
-export function BookingsSearch({ files, guestCounts }: Props) {
+export function BookingsSearch({ files, guestCounts, guestsMap = {} }: Props) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -27,7 +28,6 @@ export function BookingsSearch({ files, guestCounts }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Search */}
       <div className="relative">
         <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <Input
@@ -39,7 +39,6 @@ export function BookingsSearch({ files, guestCounts }: Props) {
         />
       </div>
 
-      {/* Results */}
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <p className="text-4xl mb-3">🔍</p>
@@ -52,6 +51,7 @@ export function BookingsSearch({ files, guestCounts }: Props) {
               key={file.id}
               file={file}
               guestCount={guestCounts[file.id] ?? 0}
+              guests={guestsMap[file.id] ?? []}
             />
           ))}
         </div>
