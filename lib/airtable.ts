@@ -54,12 +54,14 @@ export type Repair = AirtableRecord<RepairFields>;
 
 export type RoomStatus = "דרוש תיקון" | "בשימוש" | "לניקוי" | "שמור" | "פנוי";
 
+const VALID_ROOM_STATUSES: RoomStatus[] = ["דרוש תיקון", "בשימוש", "לניקוי", "שמור", "פנוי"];
+
 export function computeRoomStatus(
   room: Room,
   repairs: Repair[],
   bookingFiles: BookingFile[]
 ): RoomStatus {
-  // 1. Open repair record linked to this room
+  // 1. Open repair always wins
   const hasOpenRepair = repairs.some(
     (r) =>
       r.fields["חדרי אירוח"]?.includes(room.id) &&
@@ -67,28 +69,34 @@ export function computeRoomStatus(
   );
   if (hasOpenRepair) return "דרוש תיקון";
 
-  // 2. Linked to any booking file
+  // 2. Trust the stored Airtable status field if valid
+  const stored = room.fields["סטטוס"];
+  if (stored && VALID_ROOM_STATUSES.includes(stored as RoomStatus)) {
+    return stored as RoomStatus;
+  }
+
+  // 3. Fallback: compute from relationships
   const linkedToFile =
     room.fields["תיקי בקשות אירוח"] &&
     room.fields["תיקי בקשות אירוח"].length > 0;
   if (linkedToFile) return "בשימוש";
 
-  // 3. Manual override for "שמור"
-  if (room.fields["סטטוס"] === "שמור") return "שמור";
-
-  // 4. Was previously linked (check bookingFiles for historical link)
   const wasLinked = bookingFiles.some((f) =>
     f.fields["חדרי אירוח"]?.includes(room.id)
   );
   if (wasLinked) return "לניקוי";
 
-  // 5. Manual override for "לניקוי" (set explicitly but no booking history)
-  if (room.fields["סטטוס"] === "לניקוי") return "לניקוי";
-
   return "פנוי";
 }
 
+const VALID_BOOKING_STATUSES = ["ממתין", "הוקצה חדר", "הגיע", "הלך"];
+
 export function computeBookingFileStatus(file: BookingFile): string {
+  // Trust the stored Airtable status field if valid
+  const stored = file.fields["סטטוס"];
+  if (stored && VALID_BOOKING_STATUSES.includes(stored)) return stored;
+
+  // Fallback: compute from relationships
   if (file.fields["חדרי אירוח"] && file.fields["חדרי אירוח"].length > 0) {
     return "הוקצה חדר";
   }

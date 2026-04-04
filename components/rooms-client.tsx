@@ -45,13 +45,22 @@ const statusEditColor: Record<RoomStatus, string> = {
 export function RoomsClient({ roomsWithData }: { roomsWithData: RoomWithData[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [filterStatus, setFilterStatus] = useState<RoomStatus | null>(null);
+  const [filterStatuses, setFilterStatuses] = useState<Set<RoomStatus>>(new Set());
   const [editRoom, setEditRoom] = useState<RoomWithData | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const filtered = filterStatus
-    ? roomsWithData.filter((r) => r.status === filterStatus)
+  const filtered = filterStatuses.size > 0
+    ? roomsWithData.filter((r) => filterStatuses.has(r.status))
     : roomsWithData;
+
+  function toggleFilter(s: RoomStatus) {
+    setFilterStatuses((prev) => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s);
+      else next.add(s);
+      return next;
+    });
+  }
 
   // Group by מיקום
   const byLocation: Record<string, RoomWithData[]> = {};
@@ -91,10 +100,10 @@ export function RoomsClient({ roomsWithData }: { roomsWithData: RoomWithData[] }
       {/* Status filter chips */}
       <div className="flex flex-wrap gap-2">
         <button
-          onClick={() => setFilterStatus(null)}
+          onClick={() => setFilterStatuses(new Set())}
           className={cn(
             "px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
-            filterStatus === null
+            filterStatuses.size === 0
               ? "bg-gray-900 text-white border-gray-900"
               : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"
           )}
@@ -104,19 +113,20 @@ export function RoomsClient({ roomsWithData }: { roomsWithData: RoomWithData[] }
         {ALL_STATUSES.map((s) => {
           const count = roomsWithData.filter((r) => r.status === s).length;
           if (!count) return null;
+          const active = filterStatuses.has(s);
           return (
             <button
               key={s}
-              onClick={() => setFilterStatus(s === filterStatus ? null : s)}
+              onClick={() => toggleFilter(s)}
               className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
-                filterStatus === s
-                  ? "ring-2 ring-offset-1 ring-gray-400"
-                  : "hover:shadow-sm"
+                "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
+                active
+                  ? "ring-2 ring-offset-1 ring-gray-500 shadow-sm"
+                  : "hover:shadow-sm bg-white border-gray-200"
               )}
             >
               <StatusBadge status={s} size="sm" />
-              <span className="mr-1 text-gray-500">{count}</span>
+              <span className="text-gray-500">{count}</span>
             </button>
           );
         })}
@@ -169,7 +179,7 @@ export function RoomsClient({ roomsWithData }: { roomsWithData: RoomWithData[] }
       {filtered.length === 0 && (
         <div className="text-center py-16 text-gray-400">
           <p className="text-4xl mb-3">🛏️</p>
-          <p>אין חדרים{filterStatus ? ` בסטטוס "${filterStatus}"` : ""}</p>
+          <p>אין חדרים{filterStatuses.size > 0 ? " בסטטוסים שנבחרו" : ""}</p>
         </div>
       )}
 
