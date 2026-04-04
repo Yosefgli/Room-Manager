@@ -10,6 +10,7 @@ import {
   computeRoomStatus,
 } from "@/lib/airtable";
 import { BookingDetailClient } from "@/components/booking-detail-client";
+import { trackApiCall } from "@/lib/usage";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -26,6 +27,7 @@ export default async function BookingDetailPage({ params }: Props) {
       getRepairs(),
       getGuests(),
     ]);
+    trackApiCall(5); // getBookingFile + getRooms + getBookingFiles + getRepairs + getGuests
 
     // Rooms with computed status
     const roomsWithStatus = rooms.map((room) => ({

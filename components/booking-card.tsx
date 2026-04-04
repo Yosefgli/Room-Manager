@@ -181,17 +181,17 @@ export function BookingCard({ file, guestCount = 0, guests = [] }: BookingCardPr
                   </p>
                 )}
               </div>
-              {guest.fields["תעודת זהות"]?.[0] && (
+              {guest.fields["מסמך מזהה"]?.[0] && (
                 <a
-                  href={guest.fields["תעודת זהות"][0].url}
+                  href={guest.fields["מסמך מזהה"][0].url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="shrink-0"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Image
-                    src={guest.fields["תעודת זהות"][0].thumbnails?.small?.url ?? guest.fields["תעודת זהות"][0].url}
-                    alt="תעודת זהות"
+                    src={guest.fields["מסמך מזהה"][0].thumbnails?.small?.url ?? guest.fields["מסמך מזהה"][0].url}
+                    alt="מסמך מזהה"
                     width={48}
                     height={32}
                     className="rounded-lg object-cover border border-gray-200"

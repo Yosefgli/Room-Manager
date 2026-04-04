@@ -720,16 +720,16 @@ export function BookingDetailClient({
                         <p className="text-xs text-gray-400">{guest.fields["מספר פלאפון"]}</p>
                       )}
                     </div>
-                    {guest.fields["תעודת זהות"]?.[0] && (
+                    {guest.fields["מסמך מזהה"]?.[0] && (
                       <a
-                        href={guest.fields["תעודת זהות"][0].url}
+                        href={guest.fields["מסמך מזהה"][0].url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="shrink-0"
                       >
                         <Image
-                          src={guest.fields["תעודת זהות"][0].thumbnails?.small?.url ?? guest.fields["תעודת זהות"][0].url}
-                          alt="תעודת זהות"
+                          src={guest.fields["מסמך מזהה"][0].thumbnails?.small?.url ?? guest.fields["מסמך מזהה"][0].url}
+                          alt="מסמך מזהה"
                           width={56}
                           height={36}
                           className="rounded-lg object-cover border border-gray-200"

@@ -50,7 +50,7 @@ export type AirtableAttachment = {
 export type GuestFields = {
   "שם אורח": string;
   "מספר פלאפון"?: string;
-  "תעודת זהות"?: AirtableAttachment[];
+  "מסמך מזהה"?: AirtableAttachment[];
 };
 
 export type RepairFields = {

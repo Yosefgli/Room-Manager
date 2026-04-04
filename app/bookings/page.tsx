@@ -3,10 +3,12 @@ export const dynamic = "force-dynamic";
 import { getBookingFiles, getGuests } from "@/lib/airtable";
 import { BookingsSearch } from "@/components/bookings-search";
 import { NewBookingDialog } from "@/components/new-booking-dialog";
+import { trackApiCall } from "@/lib/usage";
 import type { Guest } from "@/lib/airtable";
 
 export default async function BookingsPage() {
   const [bookingFiles, allGuests] = await Promise.all([getBookingFiles(), getGuests()]);
+  trackApiCall(2); // getBookingFiles + getGuests
 
   const activeFiles = bookingFiles.filter((f) => f.fields["סטטוס"] !== "הלך");
 

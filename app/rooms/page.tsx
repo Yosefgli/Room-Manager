@@ -5,6 +5,7 @@ import {
   computeRoomStatus, hasOpenRepairForRoom,
 } from "@/lib/airtable";
 import { RoomsClient } from "@/components/rooms-client";
+import { trackApiCall } from "@/lib/usage";
 
 export default async function RoomsPage() {
   const [rooms, bookingFiles, repairs] = await Promise.all([
@@ -12,6 +13,7 @@ export default async function RoomsPage() {
     getBookingFiles(),
     getRepairs(),
   ]);
+  trackApiCall(3); // getRooms + getBookingFiles + getRepairs
 
   const roomsWithData = rooms
     .map((room) => {

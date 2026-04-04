@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { BedDouble, FolderOpen, CheckCircle, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { DashboardQuickActions } from "@/components/dashboard-quick-actions";
+import { trackApiCall } from "@/lib/usage";
 
 export default async function DashboardPage() {
   const [rooms, bookingFiles, repairs] = await Promise.all([
@@ -16,6 +17,7 @@ export default async function DashboardPage() {
     getBookingFiles(),
     getRepairs(),
   ]);
+  trackApiCall(3); // getRooms + getBookingFiles + getRepairs
 
   const roomsWithStatus = rooms
     .map((room) => ({

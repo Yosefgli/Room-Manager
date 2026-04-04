@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { getBookingFiles, getGuests, getRooms } from "@/lib/airtable";
 import { HistoryClient } from "@/components/history-client";
 import { History } from "lucide-react";
+import { trackApiCall } from "@/lib/usage";
 import type { Guest } from "@/lib/airtable";
 
 export default async function HistoryPage() {
@@ -11,6 +12,7 @@ export default async function HistoryPage() {
     getGuests(),
     getRooms(),
   ]);
+  trackApiCall(3); // getBookingFiles + getGuests + getRooms
 
   const goneFiles = bookingFiles
     .filter((f) => f.fields["סטטוס"] === "הלך")
