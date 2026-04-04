@@ -28,6 +28,7 @@ import {
   Loader2,
   Save,
 } from "lucide-react";
+import Image from "next/image";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { computeBookingFileStatus } from "@/lib/airtable";
@@ -187,7 +188,7 @@ export function BookingDetailClient({
   const [guestForm, setGuestForm] = useState({ name: "", phone: "" });
   const [savingGuest, setSavingGuest] = useState(false);
   const [editingGuest, setEditingGuest] = useState<string | null>(null);
-  const [editGuestForm, setEditGuestForm] = useState({ name: "", phone: "", idNumber: "" });
+  const [editGuestForm, setEditGuestForm] = useState({ name: "", phone: "" });
 
   async function addGuest(e: React.FormEvent) {
     e.preventDefault();
@@ -250,7 +251,6 @@ export function BookingDetailClient({
         body: JSON.stringify({
           "שם אורח": editGuestForm.name,
           "מספר פלאפון": editGuestForm.phone || undefined,
-          "תעודת זהות": editGuestForm.idNumber || undefined,
         }),
       });
       if (!res.ok) throw new Error();
@@ -697,15 +697,6 @@ export function BookingDetailClient({
                       dir="ltr"
                       placeholder="טלפון"
                     />
-                    <Input
-                      value={editGuestForm.idNumber}
-                      onChange={(e) =>
-                        setEditGuestForm((f) => ({ ...f, idNumber: e.target.value }))
-                      }
-                      className="h-7 text-sm rounded-lg w-28"
-                      dir="ltr"
-                      placeholder="ת.ז."
-                    />
                     <button
                       onClick={() => saveGuestEdit(guest.id)}
                       className="p-1 rounded-lg text-green-600 hover:bg-green-50"
@@ -725,15 +716,26 @@ export function BookingDetailClient({
                       <p className="text-sm font-medium text-gray-800 truncate">
                         {guest.fields["שם אורח"]}
                       </p>
-                      <div className="flex items-center gap-3 flex-wrap">
-                        {guest.fields["מספר פלאפון"] && (
-                          <p className="text-xs text-gray-400">{guest.fields["מספר פלאפון"]}</p>
-                        )}
-                        {guest.fields["תעודת זהות"] && (
-                          <p className="text-xs text-gray-400">ת.ז. {guest.fields["תעודת זהות"]}</p>
-                        )}
-                      </div>
+                      {guest.fields["מספר פלאפון"] && (
+                        <p className="text-xs text-gray-400">{guest.fields["מספר פלאפון"]}</p>
+                      )}
                     </div>
+                    {guest.fields["תעודת זהות"]?.[0] && (
+                      <a
+                        href={guest.fields["תעודת זהות"][0].url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0"
+                      >
+                        <Image
+                          src={guest.fields["תעודת זהות"][0].thumbnails?.small?.url ?? guest.fields["תעודת זהות"][0].url}
+                          alt="תעודת זהות"
+                          width={56}
+                          height={36}
+                          className="rounded-lg object-cover border border-gray-200"
+                        />
+                      </a>
+                    )}
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => {
@@ -741,7 +743,6 @@ export function BookingDetailClient({
                           setEditGuestForm({
                             name: guest.fields["שם אורח"] || "",
                             phone: guest.fields["מספר פלאפון"] || "",
-                            idNumber: guest.fields["תעודת זהות"] || "",
                           });
                         }}
                         className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/5"

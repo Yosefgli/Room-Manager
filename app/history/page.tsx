@@ -1,12 +1,16 @@
 export const dynamic = "force-dynamic";
 
-import { getBookingFiles, getGuests } from "@/lib/airtable";
-import { BookingsSearch } from "@/components/bookings-search";
+import { getBookingFiles, getGuests, getRooms } from "@/lib/airtable";
+import { HistoryClient } from "@/components/history-client";
 import { History } from "lucide-react";
 import type { Guest } from "@/lib/airtable";
 
 export default async function HistoryPage() {
-  const [bookingFiles, allGuests] = await Promise.all([getBookingFiles(), getGuests()]);
+  const [bookingFiles, allGuests, rooms] = await Promise.all([
+    getBookingFiles(),
+    getGuests(),
+    getRooms(),
+  ]);
 
   const goneFiles = bookingFiles
     .filter((f) => f.fields["סטטוס"] === "הלך")
@@ -41,10 +45,11 @@ export default async function HistoryPage() {
           <p>אין תיקים בהיסטוריה עדיין</p>
         </div>
       ) : (
-        <BookingsSearch
+        <HistoryClient
           files={goneFiles}
           guestCounts={guestCountMap}
           guestsMap={guestsMap}
+          rooms={rooms}
         />
       )}
     </div>

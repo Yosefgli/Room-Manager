@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Phone, BedDouble, Users, ChevronLeft, ChevronDown, Loader2, CreditCard } from "lucide-react";
+import { Phone, BedDouble, Users, ChevronLeft, ChevronDown, Loader2 } from "lucide-react";
+import Image from "next/image";
 import { StatusBadge } from "./status-badge";
 import { computeBookingFileStatus } from "@/lib/airtable";
 import { cn } from "@/lib/utils";
@@ -173,21 +174,30 @@ export function BookingCard({ file, guestCount = 0, guests = [] }: BookingCardPr
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-800">{guest.fields["שם אורח"]}</p>
-                <div className="flex items-center gap-3 flex-wrap">
-                  {guest.fields["מספר פלאפון"] && (
-                    <span className="text-xs text-gray-400 flex items-center gap-1">
-                      <Phone className="w-3 h-3" />
-                      {guest.fields["מספר פלאפון"]}
-                    </span>
-                  )}
-                  {guest.fields["תעודת זהות"] && (
-                    <span className="text-xs text-gray-400 flex items-center gap-1">
-                      <CreditCard className="w-3 h-3" />
-                      {guest.fields["תעודת זהות"]}
-                    </span>
-                  )}
-                </div>
+                {guest.fields["מספר פלאפון"] && (
+                  <p className="text-xs text-gray-400 flex items-center gap-1">
+                    <Phone className="w-3 h-3" />
+                    {guest.fields["מספר פלאפון"]}
+                  </p>
+                )}
               </div>
+              {guest.fields["תעודת זהות"]?.[0] && (
+                <a
+                  href={guest.fields["תעודת זהות"][0].url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Image
+                    src={guest.fields["תעודת זהות"][0].thumbnails?.small?.url ?? guest.fields["תעודת זהות"][0].url}
+                    alt="תעודת זהות"
+                    width={48}
+                    height={32}
+                    className="rounded-lg object-cover border border-gray-200"
+                  />
+                </a>
+              )}
             </div>
           ))}
         </div>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, BedDouble, FolderOpen, Wrench, History } from "lucide-react";
+import { LayoutDashboard, BedDouble, FolderOpen, Wrench, History, BarChart2 } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "דשבורד", icon: LayoutDashboard },
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/bookings", label: "תיקים", icon: FolderOpen },
   { href: "/repairs", label: "תיקונים", icon: Wrench },
   { href: "/history", label: "היסטוריה", icon: History },
+  { href: "/usage", label: "שימוש API", icon: BarChart2 },
 ];
 
 export function Sidebar() {
