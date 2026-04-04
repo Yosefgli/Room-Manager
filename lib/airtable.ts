@@ -155,7 +155,6 @@ export async function getBookingFile(id: string): Promise<BookingFile> {
     { headers, cache: "no-store" }
   );
   if (!res.ok) throw new Error("Failed to fetch booking file");
-  trackApiCall(1);
   return res.json();
 }
 
@@ -174,7 +173,6 @@ export async function updateBookingFile(
     }
   );
   if (!res.ok) throw new Error("Failed to update booking file");
-  trackApiCall(1);
   return res.json();
 }
 
@@ -190,7 +188,6 @@ export async function createBookingFile(
     }
   );
   if (!res.ok) throw new Error("Failed to create booking file");
-  trackApiCall(1);
   return res.json();
 }
 
@@ -206,7 +203,6 @@ export async function createGuest(
     }
   );
   if (!res.ok) throw new Error("Failed to create guest");
-  trackApiCall(1);
   return res.json();
 }
 
@@ -223,7 +219,6 @@ export async function updateGuest(
     }
   );
   if (!res.ok) throw new Error("Failed to update guest");
-  trackApiCall(1);
   return res.json();
 }
 
@@ -233,7 +228,6 @@ export async function deleteGuest(id: string): Promise<void> {
     { method: "DELETE", headers }
   );
   if (!res.ok) throw new Error("Failed to delete guest");
-  trackApiCall(1);
 }
 
 export async function updateRoom(
@@ -249,7 +243,6 @@ export async function updateRoom(
     }
   );
   if (!res.ok) throw new Error("Failed to update room");
-  trackApiCall(1);
   return res.json();
 }
 
@@ -265,7 +258,6 @@ export async function createRepair(
     }
   );
   if (!res.ok) throw new Error("Failed to create repair");
-  trackApiCall(1);
   return res.json();
 }
 
@@ -282,6 +274,5 @@ export async function updateRepair(
     }
   );
   if (!res.ok) throw new Error("Failed to update repair");
-  trackApiCall(1);
   return res.json();
 }
