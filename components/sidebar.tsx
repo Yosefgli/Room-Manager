@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, BedDouble, FolderOpen, Wrench, History, BarChart2 } from "lucide-react";
+import { LayoutDashboard, BedDouble, FolderOpen, Wrench, History, BarChart2, ScanLine } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "דשבורד", icon: LayoutDashboard },
+  { href: "/scan", label: "סריקת QR", icon: ScanLine },
   { href: "/rooms", label: "חדרים", icon: BedDouble },
   { href: "/bookings", label: "תיקים", icon: FolderOpen },
   { href: "/repairs", label: "תיקונים", icon: Wrench },
