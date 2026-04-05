@@ -76,7 +76,7 @@ export default async function DashboardPage() {
           {roomsWithStatus.map(({ room, status, hasOpenRepair }) => (
             <Link
               key={room.id}
-              href="/rooms"
+              href={`/rooms#room-${room.id}`}
               className={`relative flex flex-col items-center justify-center p-2 rounded-2xl border text-center gap-0.5 hover:shadow-sm transition-all ${colorMap[status]}`}
             >
               {hasOpenRepair && status !== "דרוש תיקון" && (

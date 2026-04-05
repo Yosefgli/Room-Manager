@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
@@ -70,6 +70,25 @@ export function RoomsClient({
   const filtered = filterStatuses.size > 0
     ? roomsWithData.filter((r) => filterStatuses.has(r.status))
     : roomsWithData;
+
+  // Scroll to room from URL hash (e.g. /rooms#room-recXXX)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith("#room-")) {
+      // Small delay to let the DOM render
+      setTimeout(() => {
+        const el = document.getElementById(hash.slice(1));
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          // Brief highlight effect
+          el.classList.add("ring-2", "ring-primary", "ring-offset-2");
+          setTimeout(() => {
+            el.classList.remove("ring-2", "ring-primary", "ring-offset-2");
+          }, 2000);
+        }
+      }, 300);
+    }
+  }, []);
 
   function toggleFilter(s: RoomStatus) {
     setFilterStatuses((prev) => {
@@ -371,6 +390,7 @@ export function RoomsClient({
             {items.map((item) => (
               <button
                 key={item.room.id}
+                id={`room-${item.room.id}`}
                 onClick={() => setSheet({ mode: "edit", item })}
                 className={cn(
                   "relative bg-white rounded-2xl border p-3 text-right transition-all hover:shadow-md active:scale-95 w-full",
@@ -459,10 +479,10 @@ export function RoomsClient({
                   </div>
 
                   {/* Linked booking files */}
-                  {currentItem.linkedFiles.length > 0 && (
-                    <div>
-                      <p className="text-xs text-gray-500 mb-2 font-medium">תיק מקושר</p>
-                      {currentItem.linkedFiles.slice(0, 1).map((bf) => (
+                  {currentItem.linkedFiles.filter((f) => (f.fields["סטטוס"] ?? "ממתין") !== "הלך").length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-500 font-medium">תיקים מקושרים ({currentItem.linkedFiles.filter((f) => (f.fields["סטטוס"] ?? "ממתין") !== "הלך").length})</p>
+                      {currentItem.linkedFiles.filter((f) => (f.fields["סטטוס"] ?? "ממתין") !== "הלך").map((bf) => (
                         <div key={bf.id} className="bg-gray-50 rounded-xl p-3 space-y-2">
                           <div className="flex items-center justify-between">
                             <Link href={`/bookings/${bf.id}`} onClick={closeSheet} className="text-sm font-semibold text-primary hover:underline">
