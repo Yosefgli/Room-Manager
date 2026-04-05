@@ -84,6 +84,17 @@ export function DashboardQuickActions({ waitingFiles, assignedFiles, arrivedFile
           )
         );
       }
+      if (newStatus === "הוקצה חדר" && roomIds.length > 0) {
+        await Promise.all(
+          roomIds.map((rid) =>
+            fetch(`/api/rooms/${rid}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ "סטטוס": "שמור" }),
+            })
+          )
+        );
+      }
 
       toast.success("סטטוס עודכן");
       startTransition(() => router.refresh());

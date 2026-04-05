@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
 import {
@@ -58,6 +58,7 @@ export function ScanClient() {
   const [step, setStep] = useState<ScanStep>("select-mode");
   const [mode, setMode] = useState<ScanMode | null>(null);
   const [loading, setLoading] = useState(false);
+  const [scanKey, setScanKey] = useState(0); // force remount scanner
 
   // Key result
   const [keyResult, setKeyResult] = useState<KeyResult | null>(null);
@@ -71,6 +72,7 @@ export function ScanClient() {
     setStep("scanning");
     setKeyResult(null);
     setGuestResult(null);
+    setScanKey((k) => k + 1);
   }
 
   function backToModes() {
@@ -84,47 +86,47 @@ export function ScanClient() {
     setStep("scanning");
     setKeyResult(null);
     setGuestResult(null);
+    setScanKey((k) => k + 1);
   }
 
   // ── Handle scanned QR ─────────────────────────────────────────
 
-  const handleScan = useCallback(
-    async (decodedText: string) => {
-      if (!mode || loading) return;
+  async function handleScan(decodedText: string) {
+    if (!mode) return;
 
-      setLoading(true);
-      try {
-        const res = await fetch("/api/scan", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode, value: decodedText.trim() }),
-        });
-        const data = await res.json();
+    setLoading(true);
+    try {
+      const res = await fetch("/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode, value: decodedText.trim() }),
+      });
+      const data = await res.json();
 
-        if (!res.ok) {
-          if (mode === "guest") {
-            setGuestResult({ success: false, error: data.error });
-          } else {
-            setKeyResult({ success: false, error: data.error });
-          }
-          setStep("result");
-          return;
-        }
-
+      if (!res.ok) {
         if (mode === "guest") {
-          setGuestResult(data);
+          setGuestResult({ success: false, error: data.error });
         } else {
-          setKeyResult(data);
+          setKeyResult({ success: false, error: data.error });
         }
         setStep("result");
-      } catch {
-        toast.error("שגיאה בתקשורת עם השרת");
-      } finally {
-        setLoading(false);
+        return;
       }
-    },
-    [mode, loading]
-  );
+
+      if (mode === "guest") {
+        setGuestResult(data);
+      } else {
+        setKeyResult(data);
+      }
+      setStep("result");
+    } catch {
+      toast.error("שגיאה בתקשורת עם השרת");
+      // Go back to scanning on error
+      setScanKey((k) => k + 1);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   // ── Guest actions ────────────────────────────────────────────
 
@@ -251,10 +253,16 @@ export function ScanClient() {
       {step === "scanning" && mode && (
         <div className="flex-1 flex flex-col items-center">
           <QrScanner
+            key={scanKey}
             onScan={handleScan}
-            loading={loading}
             mode={mode}
           />
+          {loading && (
+            <div className="mt-4 flex items-center gap-2 text-gray-500">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">מעבד סריקה...</span>
+            </div>
+          )}
           <button
             onClick={backToModes}
             className="mt-4 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-100 transition-colors"
@@ -549,45 +557,38 @@ function ModeCard({
 
 function QrScanner({
   onScan,
-  loading,
   mode,
 }: {
   onScan: (text: string) => void;
-  loading: boolean;
   mode: ScanMode;
 }) {
-  const scannerRef = useRef<HTMLDivElement>(null);
-  const html5QrCodeRef = useRef<any>(null);
+  const scannerContainerRef = useRef<HTMLDivElement>(null);
+  const onScanRef = useRef(onScan);
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
-  const hasScannedRef = useRef(false);
 
+  // Keep the callback ref up to date without restarting the scanner
   useEffect(() => {
-    hasScannedRef.current = false;
-  }, [mode]);
+    onScanRef.current = onScan;
+  }, [onScan]);
 
   useEffect(() => {
     let mounted = true;
+    let html5QrCode: any = null;
 
     async function startScanner() {
       try {
         const { Html5Qrcode } = await import("html5-qrcode");
 
-        if (!mounted || !scannerRef.current) return;
+        if (!mounted || !scannerContainerRef.current) return;
 
-        const scannerId = "qr-scanner-region";
+        const scannerId = `qr-reader-${Date.now()}`;
+        const div = document.createElement("div");
+        div.id = scannerId;
+        scannerContainerRef.current.innerHTML = "";
+        scannerContainerRef.current.appendChild(div);
 
-        // Ensure the container element exists
-        let container = document.getElementById(scannerId);
-        if (!container && scannerRef.current) {
-          const div = document.createElement("div");
-          div.id = scannerId;
-          scannerRef.current.appendChild(div);
-          container = div;
-        }
-
-        const html5QrCode = new Html5Qrcode(scannerId);
-        html5QrCodeRef.current = html5QrCode;
+        html5QrCode = new Html5Qrcode(scannerId);
 
         await html5QrCode.start(
           { facingMode: "environment" },
@@ -597,24 +598,22 @@ function QrScanner({
             aspectRatio: 1.0,
           },
           (decodedText: string) => {
-            if (hasScannedRef.current) return;
-            hasScannedRef.current = true;
-
-            // Stop scanner before processing
-            html5QrCode
-              .stop()
-              .then(() => {
-                if (mounted) {
-                  setStarted(false);
-                  onScan(decodedText);
-                }
-              })
-              .catch(() => {
-                if (mounted) onScan(decodedText);
-              });
+            // Stop scanner immediately, then call the callback
+            if (html5QrCode) {
+              const scanner = html5QrCode;
+              html5QrCode = null; // prevent double-stop
+              scanner
+                .stop()
+                .then(() => {
+                  if (mounted) onScanRef.current(decodedText);
+                })
+                .catch(() => {
+                  if (mounted) onScanRef.current(decodedText);
+                });
+            }
           },
           () => {
-            // QR code not found in frame — ignore
+            // QR code not found in this frame — ignore
           }
         );
 
@@ -623,7 +622,7 @@ function QrScanner({
         if (mounted) {
           console.error("Scanner error:", err);
           setError(
-            "לא ניתן לגשת למצלמה. ודא שנתת הרשאה לאפליקציה לצלם."
+            "לא ניתן לגשת למצלמה. ודא שנתת הרשאה לשימוש במצלמה."
           );
         }
       }
@@ -633,12 +632,13 @@ function QrScanner({
 
     return () => {
       mounted = false;
-      if (html5QrCodeRef.current) {
-        html5QrCodeRef.current.stop().catch(() => {});
-        html5QrCodeRef.current = null;
+      if (html5QrCode) {
+        html5QrCode.stop().catch(() => {});
+        html5QrCode = null;
       }
     };
-  }, [onScan, mode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount — callback is accessed via ref
 
   const modeColor = {
     "key-checkin": "border-green-400",
@@ -681,18 +681,10 @@ function QrScanner({
           modeColor[mode]
         )}
       >
-        <div ref={scannerRef} className="w-full" />
-
-        {/* Loading overlay */}
-        {loading && (
-          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3 z-10">
-            <Loader2 className="w-8 h-8 animate-spin text-white" />
-            <p className="text-white text-sm font-medium">מעבד סריקה...</p>
-          </div>
-        )}
+        <div ref={scannerContainerRef} className="w-full" />
 
         {/* Not started yet */}
-        {!started && !error && !loading && (
+        {!started && !error && (
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
               <Loader2 className="w-8 h-8 animate-spin text-gray-400 mx-auto mb-2" />
