@@ -480,9 +480,9 @@ export function RoomsClient({
 
                   {/* Linked booking files */}
                   {currentItem.linkedFiles.length > 0 && (
-                    <div>
-                      <p className="text-xs text-gray-500 mb-2 font-medium">תיק מקושר</p>
-                      {currentItem.linkedFiles.slice(0, 1).map((bf) => (
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-500 font-medium">תיקים מקושרים ({currentItem.linkedFiles.length})</p>
+                      {currentItem.linkedFiles.map((bf) => (
                         <div key={bf.id} className="bg-gray-50 rounded-xl p-3 space-y-2">
                           <div className="flex items-center justify-between">
                             <Link href={`/bookings/${bf.id}`} onClick={closeSheet} className="text-sm font-semibold text-primary hover:underline">
