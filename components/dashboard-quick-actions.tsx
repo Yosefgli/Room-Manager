@@ -109,7 +109,8 @@ export function DashboardQuickActions({ waitingFiles, assignedFiles, arrivedFile
     setSaving(file.id + roomItem.room.id);
     try {
       const existingRooms = file.fields["חדרי אירוח"] ?? [];
-      const newFileStatus = file.fields["סטטוס"] === "ממתין" ? "הוקצה חדר" : file.fields["סטטוס"];
+      const currentStatus = file.fields["סטטוס"] ?? "ממתין";
+      const newFileStatus = currentStatus === "ממתין" ? "הוקצה חדר" : currentStatus;
 
       // "שמור" = reserved; "בשימוש" only if the guest already arrived
       const newRoomStatus = file.fields["סטטוס"] === "הגיע" ? "בשימוש" : "שמור";
