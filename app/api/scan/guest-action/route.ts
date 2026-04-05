@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── Single room check-in (manual, no cascade to booking) ─────
+    // ── Single room check-in → cascade booking to "הגיע" ─────────
     if (action === "room-checkin") {
       if (!roomId) {
         return NextResponse.json(
@@ -29,9 +29,19 @@ export async function POST(req: NextRequest) {
       await updateRoom(roomId, { סטטוס: "בשימוש" });
       trackApiCall(1);
 
+      // Cascade: if booking was "הוקצה חדר" → change to "הגיע"
+      const bookingFiles = await getBookingFiles();
+      trackApiCall(1);
+      const booking = bookingFiles.find((f) => f.id === bookingId);
+      if (booking && booking.fields["סטטוס"] === "הוקצה חדר") {
+        await updateBookingFile(bookingId, { סטטוס: "הגיע" });
+        trackApiCall(1);
+      }
+
       return NextResponse.json({
         success: true,
         message: "חדר סומן כ\"בשימוש\"",
+        bookingStatusChanged: booking?.fields["סטטוס"] === "הוקצה חדר",
       });
     }
 

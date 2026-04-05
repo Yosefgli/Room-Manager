@@ -238,6 +238,17 @@ export function RoomsClient({
           )
         );
       }
+      if (newStatus === "הוקצה חדר" && roomIds.length > 0) {
+        await Promise.all(
+          roomIds.map((rid) =>
+            fetch(`/api/rooms/${rid}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ "סטטוס": "שמור" }),
+            })
+          )
+        );
+      }
       toast.success("סטטוס תיק עודכן");
       closeSheet();
       startTransition(() => router.refresh());

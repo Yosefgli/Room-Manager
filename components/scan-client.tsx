@@ -144,18 +144,27 @@ export function ScanClient() {
         }),
       });
       if (!res.ok) throw new Error();
+      const data = await res.json();
 
       // Update local state
       setGuestResult((prev) => {
         if (!prev?.rooms) return prev;
         return {
           ...prev,
+          // If booking was cascaded to "הגיע", update it locally
+          booking: data.bookingStatusChanged && prev.booking
+            ? { ...prev.booking, status: "הגיע" }
+            : prev.booking,
           rooms: prev.rooms.map((r) =>
             r.id === roomId ? { ...r, status: "בשימוש" } : r
           ),
         };
       });
-      toast.success("חדר סומן כ\"בשימוש\"");
+      toast.success(
+        data.bookingStatusChanged
+          ? "חדר סומן כ\"בשימוש\" — האורח סומן כ\"הגיע\""
+          : "חדר סומן כ\"בשימוש\""
+      );
     } catch {
       toast.error("שגיאה בעדכון חדר");
     } finally {
